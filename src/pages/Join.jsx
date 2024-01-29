@@ -71,6 +71,7 @@ function Join() {
       });
     } catch (e) {
       setError(e.message);
+      setLoading(false);
     }
   };
 
