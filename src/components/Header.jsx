@@ -13,7 +13,7 @@ import TagIcon from "@mui/icons-material/Tag";
 import { useSelector } from "react-redux";
 import "../firebase";
 import { signOut, getAuth } from "firebase/auth";
-
+import ProfileModal from "./Modal/ProfileModal";
 function Header() {
   const { user, theme } = useSelector((state) => state);
   const [anchorEl, setAnchorEl] = useState(null);
@@ -23,10 +23,18 @@ function Header() {
   }, []);
   const handleCloseMenu = useCallback(() => setAnchorEl(null), []);
 
+  const handleClickOepn = useCallback(() => {
+    setShowProfileModal(true);
+    handleCloseMenu();
+  }, [handleCloseMenu]);
+
+  const handleCloseProfileModal = useCallback(() => {
+    setShowProfileModal(false);
+  }, []);
+
   const handleLogout = useCallback(async () => {
     await signOut(getAuth());
   }, []);
-
   return (
     <>
       <AppBar
@@ -34,7 +42,7 @@ function Header() {
         sx={{
           zIndex: (theme) => theme.zIndex.drawer + 1,
           color: "#9A939B",
-          backgroundColor: theme.palette.background.default,
+          backgroundColor: theme.mainTheme,
         }}
       >
         <Toolbar
@@ -72,7 +80,7 @@ function Header() {
               onClose={handleCloseMenu}
               anchorOrigin={{ vertical: "top", horizontal: "right" }}
             >
-              <MenuItem>
+              <MenuItem onClick={handleClickOepn}>
                 <Typography textAlign="center">프로필이미지</Typography>
               </MenuItem>
               <MenuItem onClick={handleLogout}>
@@ -82,6 +90,10 @@ function Header() {
           </Box>
         </Toolbar>
       </AppBar>
+      <ProfileModal
+        open={showProfileModal}
+        handleClose={handleCloseProfileModal}
+      />
     </>
   );
 }
