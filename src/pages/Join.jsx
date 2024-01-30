@@ -1,4 +1,3 @@
-import React, { useEffect, useState } from "react";
 import {
   Alert,
   Avatar,
@@ -9,6 +8,7 @@ import {
   Typography,
 } from "@mui/material";
 import TagIcon from "@mui/icons-material/Tag";
+import React, { useCallback, useEffect, useState } from "react";
 import { LoadingButton } from "@mui/lab";
 import { Link } from "react-router-dom";
 import "../firebase";
@@ -19,7 +19,8 @@ import {
 } from "firebase/auth";
 import md5 from "md5";
 import { getDatabase, ref, set } from "firebase/database";
-
+import { useDispatch } from "react-redux";
+import { setUser } from "../store/userReducer";
 const IsPasswordValid = (password, confirmPassword) => {
   if (password.length < 6 || confirmPassword.length < 6) {
     return false;
@@ -29,51 +30,58 @@ const IsPasswordValid = (password, confirmPassword) => {
     return true;
   }
 };
+
 function Join() {
+  const dispatch = useDispatch();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const name = data.get("name");
-    const email = data.get("email");
-    const password = data.get("password");
-    const confirmPassword = data.get("confirmPassword");
+  const postUserData = useCallback(
+    async (name, email, password) => {
+      setLoading(true);
+      try {
+        const { user } = await createUserWithEmailAndPassword(
+          getAuth(),
+          email,
+          password
+        );
+        await updateProfile(user, {
+          displayName: name,
+          photoURL: `https://www.gravatar.com/avatar/${md5(email)}?d=retro`,
+        });
+        await set(ref(getDatabase(), "users/" + user.uid), {
+          name: user.displayName,
+          avatar: user.photoURL,
+        });
+        dispatch(setUser(user));
+      } catch (e) {
+        setError(e.message);
+        setLoading(false);
+      }
+    },
+    [dispatch]
+  );
+  const handleSubmit = useCallback(
+    (event) => {
+      event.preventDefault();
+      const data = new FormData(event.currentTarget);
+      const name = data.get("name");
+      const email = data.get("email");
+      const password = data.get("password");
+      const confirmPassword = data.get("confirmPassword");
+      if (!name || !email || !password || !confirmPassword) {
+        setError("모든 항목을 입력해주세요.");
+        return;
+      }
 
-    if (!name || !email || !password || !confirmPassword) {
-      setError("모든 항목을 입력해주세요.");
-      return;
-    }
+      if (!IsPasswordValid(password, confirmPassword)) {
+        setError("비밀번호를 확인하세요.");
+        return;
+      }
 
-    if (!IsPasswordValid(password, confirmPassword)) {
-      setError("비밀번호를 확인해주세요.");
-      return;
-    }
-
-    postUserData(name, email, password);
-  };
-
-  const postUserData = async (name, email, password) => {
-    setLoading(true);
-    try {
-      const { user } = await createUserWithEmailAndPassword(
-        getAuth(),
-        email,
-        password
-      );
-      await updateProfile(user, {
-        displayName: name,
-        photoURL: `https://www.gravatar.com/avatar/${md5(email)}?d=retro`,
-      });
-      await set(ref(getDatabase(), "users/" + user.uid), {
-        name: user.displayName,
-        avatar: user.photoURL,
-      });
-    } catch (e) {
-      setError(e.message);
-      setLoading(false);
-    }
-  };
+      postUserData(name, email, password);
+    },
+    [postUserData]
+  );
 
   useEffect(() => {
     if (!error) return;
@@ -147,11 +155,12 @@ function Join() {
             type="submit"
             fullWidth
             variant="contained"
+            color="secondary"
+            loading={loading}
             sx={{ mt: 3, mb: 2 }}
           >
             회원가입
           </LoadingButton>
-
           <Grid container justifyContent="flex-end">
             <Grid item>
               <Link
