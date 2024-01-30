@@ -1,8 +1,12 @@
 import { combineReducers } from "redux";
+import channelReducer from "./channelReducer";
+import themeReducer from "./themeReducer";
 import userReducer from "./userReducer";
 
-const rootReucer = combineReducers({
+const rootReducer = combineReducers({
   user: userReducer,
+  channel: channelReducer,
+  theme: themeReducer,
 });
 
-export default rootReucer;
+export default rootReducer;
